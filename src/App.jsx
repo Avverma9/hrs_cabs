@@ -1,7 +1,7 @@
 
 import './App.css'
-import Footer from './components/Footer';
-import Header from './components/Header';
+import Footer from './components/footer';
+import Header from './components/header';
 import Login from './components/login'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MyRide from './pages/myride/my_ride';
