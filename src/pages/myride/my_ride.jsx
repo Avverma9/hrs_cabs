@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { userId } from "../../../util/configs";
 import { baseUrl } from "../../../baseUrl";
 import SeatConfigUpdate from "./seat_update";
+import CarUpdate from "./car_details_update";
 
 // Chart Components (You can replace these with your preferred charting library like Chart.js, Recharts, etc.)
 const RevenueBarChart = ({ data }) => {
@@ -12,7 +13,7 @@ const RevenueBarChart = ({ data }) => {
                     <div className="flex flex-col items-center">
                         <div
                             className="bg-blue-500 rounded-t-lg w-12 transition-all duration-1000 ease-out"
-                            style={{ height: `${(data.Shared / Math.max(data.Shared, data.Private)) * 100}px` }}
+                            style={{ height: `${Math.max(data.Shared, data.Private) > 0 ? (data.Shared / Math.max(data.Shared, data.Private)) * 100 : 0}px` }}
                         ></div>
                         <p className="text-xs mt-2 font-medium">Shared</p>
                         <p className="text-xs text-gray-600">₹{data.Shared.toLocaleString()}</p>
@@ -20,7 +21,7 @@ const RevenueBarChart = ({ data }) => {
                     <div className="flex flex-col items-center">
                         <div
                             className="bg-green-500 rounded-t-lg w-12 transition-all duration-1000 ease-out delay-200"
-                            style={{ height: `${(data.Private / Math.max(data.Shared, data.Private)) * 100}px` }}
+                            style={{ height: `${Math.max(data.Shared, data.Private) > 0 ? (data.Private / Math.max(data.Shared, data.Private)) * 100 : 0}px` }}
                         ></div>
                         <p className="text-xs mt-2 font-medium">Private</p>
                         <p className="text-xs text-gray-600">₹{data.Private.toLocaleString()}</p>
@@ -33,8 +34,8 @@ const RevenueBarChart = ({ data }) => {
 
 const SeatTypePieChart = ({ data }) => {
     const total = data.AC + data.NonAC;
-    const acPercentage = (data.AC / total) * 100;
-    const nonAcPercentage = (data.NonAC / total) * 100;
+    const acPercentage = total > 0 ? (data.AC / total) * 100 : 0;
+    const nonAcPercentage = total > 0 ? (data.NonAC / total) * 100 : 0;
 
     return (
         <div className="h-64 flex items-center justify-center">
@@ -98,7 +99,7 @@ const MonthlyTrendChart = ({ data }) => {
                                 <div
                                     className="bg-purple-500 rounded-t-lg w-8 transition-all duration-1000 ease-out"
                                     style={{
-                                        height: `${(point.revenue / maxRevenue) * 100}px`,
+                                        height: `${maxRevenue > 0 ? (point.revenue / maxRevenue) * 100 : 0}px`,
                                         animationDelay: `${index * 200}ms`
                                     }}
                                 ></div>
@@ -110,7 +111,7 @@ const MonthlyTrendChart = ({ data }) => {
                 </div>
                 <div className="mt-4 text-center">
                     <p className="text-sm text-green-600 font-medium">
-                        📈 Revenue growing by {((data[data.length - 1].revenue - data[0].revenue) / data[0].revenue * 100).toFixed(1)}%
+                        📈 Revenue growing by {data.length > 1 ? ((data[data.length - 1].revenue - data[0].revenue) / Math.max(data[0].revenue, 1) * 100).toFixed(1) : 0}%
                     </p>
                 </div>
             </div>
@@ -188,25 +189,40 @@ export const ChartDashboard = ({ revenueData }) => {
 export default function MyRide() {
     const [data, setData] = useState([]);
     const [selectedCar, setSelectedCar] = useState(null);
+    const [selectedCarForDetails, setSelectedCarForDetails] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const [editingCarId, setEditingCarId] = useState(null);
     const [isUpdateFormOpen, setIsUpdateFormOpen] = useState(false);
     const [selectedTab, setSelectedTab] = useState('overview');
+    const [isCarUpdateFormOpen, setIsCarUpdateFormOpen] = useState(false);
 
     useEffect(() => {
-        fetch(`${baseUrl}/travel/get-a-car/by-owner/${userId}`)
-            .then(res => res.json())
-            .then(data => {
-                setData(data);
-                setLoading(false);
-                console.log(data);
-            })
-            .catch(error => {
-                console.error('Error fetching rides:', error);
-                setLoading(false);
-            });
-    }, []);
+        const fetchRides = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch(`${baseUrl}/travel/get-a-car/by-owner/${userId}`);
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                setData(Array.isArray(result) ? result : []);
+                setError("");
+            } catch (error) {
+                console.error('Error fetching rides:', error);
+                setError("Failed to load rides. Please try again.");
+                setData([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (userId) {
+            fetchRides();
+        }
+    }, []);
 
     const updateRunningStatus = async (carId, newStatus, newAvailability) => {
         try {
@@ -215,20 +231,48 @@ export default function MyRide() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ runningStatus: newStatus, isAvailable: newAvailability }),
+                body: JSON.stringify({ 
+                    runningStatus: newStatus, 
+                    isAvailable: newAvailability 
+                }),
             });
 
-            if (response.ok) {
-                setData(prevData => prevData.map(car => car._id === carId ? { ...car, runningStatus: newStatus, isAvailable: newAvailability } : car));
-            } else {
-                console.error('Failed to update running status');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to update status');
             }
+
+            // Update local state only after successful API response
+            setData(prevData => prevData.map(car => 
+                car._id === carId 
+                    ? { ...car, runningStatus: newStatus, isAvailable: newAvailability } 
+                    : car
+            ));
+
         } catch (error) {
             console.error('Error updating running status:', error);
+            setError("Failed to update vehicle status. Please try again.");
+
+            // Optionally refresh data to get current state
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
         }
     };
-    // Revenue calculations
+
+    // Revenue calculations with better error handling
     const calculateRevenueData = () => {
+        if (!Array.isArray(data) || data.length === 0) {
+            return {
+                totalRevenue: 0,
+                totalBookedSeats: 0,
+                totalAvailableSeats: 0,
+                routeRevenue: {},
+                vehicleTypeRevenue: {},
+                sharingTypeRevenue: { "Shared": 0, "Private": 0 }
+            };
+        }
+
         let totalRevenue = 0;
         let totalBookedSeats = 0;
         let totalAvailableSeats = 0;
@@ -237,33 +281,43 @@ export default function MyRide() {
         let sharingTypeRevenue = { "Shared": 0, "Private": 0 };
 
         data.forEach(ride => {
+            if (!ride) return;
+
             let rideRevenue = 0;
 
-            if (ride.seatConfig && ride.seatConfig.length > 0) {
+            if (ride.seatConfig && Array.isArray(ride.seatConfig) && ride.seatConfig.length > 0) {
                 ride.seatConfig.forEach(seat => {
-                    if (seat.isBooked) {
-                        rideRevenue += seat.seatPrice;
-                        totalBookedSeats++;
-                    } else {
-                        totalAvailableSeats++;
+                    if (seat && typeof seat.seatPrice === 'number') {
+                        if (seat.isBooked) {
+                            rideRevenue += seat.seatPrice;
+                            totalBookedSeats++;
+                        } else {
+                            totalAvailableSeats++;
+                        }
                     }
                 });
-            } else if (ride.sharingType === "Private") {
+            } else if (ride.sharingType === "Private" && typeof ride.price === 'number') {
                 rideRevenue = ride.price;
             }
 
             totalRevenue += rideRevenue;
 
             // Route revenue
-            const route = `${ride.pickupP} → ${ride.dropP}`;
-            routeRevenue[route] = (routeRevenue[route] || 0) + rideRevenue;
+            if (ride.pickupP && ride.dropP) {
+                const route = `${ride.pickupP} → ${ride.dropP}`;
+                routeRevenue[route] = (routeRevenue[route] || 0) + rideRevenue;
+            }
 
             // Vehicle type revenue
-            const vehicleType = `${ride.make} ${ride.model}`;
-            vehicleTypeRevenue[vehicleType] = (vehicleTypeRevenue[vehicleType] || 0) + rideRevenue;
+            if (ride.make && ride.model) {
+                const vehicleType = `${ride.make} ${ride.model}`;
+                vehicleTypeRevenue[vehicleType] = (vehicleTypeRevenue[vehicleType] || 0) + rideRevenue;
+            }
 
             // Sharing type revenue
-            sharingTypeRevenue[ride.sharingType] += rideRevenue;
+            if (ride.sharingType && sharingTypeRevenue.hasOwnProperty(ride.sharingType)) {
+                sharingTypeRevenue[ride.sharingType] += rideRevenue;
+            }
         });
 
         return {
@@ -277,13 +331,19 @@ export default function MyRide() {
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        if (!dateString) return "Not specified";
+
+        try {
+            return new Date(dateString).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            return "Invalid date";
+        }
     };
 
     const getStatusBadge = (status, isAvailable) => {
@@ -340,18 +400,41 @@ export default function MyRide() {
         );
     }
 
-    const openUpdateForm = (carId) => {
+    const openSeatUpdateForm = (carId) => {
         const carToEdit = data.find(car => car._id === carId);
-        setSelectedCar(carToEdit);
-        setEditingCarId(carId);
-        setIsUpdateFormOpen(true);
+        if (carToEdit) {
+            setSelectedCar(carToEdit);
+            setEditingCarId(carId);
+            setIsUpdateFormOpen(true);
+        }
     };
 
+    const openCarUpdateForm = (car) => {
+        setSelectedCarForDetails(car);
+        setIsCarUpdateFormOpen(true);
+    };
+
+    const handleUpdateSuccess = (updatedCar) => {
+        setData(prevData => prevData.map(car => 
+            car._id === updatedCar._id ? updatedCar : car
+        ));
+        setIsCarUpdateFormOpen(false);
+        setSelectedCarForDetails(null);
+    };
 
     const closeUpdateForm = () => {
         setIsUpdateFormOpen(false);
+        setSelectedCar(null);
+        setEditingCarId(null);
     };
+
+    const closeCarUpdateForm = () => {
+        setIsCarUpdateFormOpen(false);
+        setSelectedCarForDetails(null);
+    };
+
     const revenueData = calculateRevenueData();
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-16">
             {/* Header */}
@@ -360,6 +443,7 @@ export default function MyRide() {
                     <div className="py-6">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                             <div>
+                                <h1 className="text-3xl font-bold text-gray-900">My Rides Dashboard</h1>
                                 <p className="text-gray-600">Track your vehicles, bookings, and revenue performance</p>
                             </div>
                             <div className="mt-4 sm:mt-0">
@@ -390,6 +474,21 @@ export default function MyRide() {
             </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Error Display */}
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-red-800">{error}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
@@ -471,7 +570,6 @@ export default function MyRide() {
                                 <span className="w-3 h-3 bg-blue-400 rounded-full mr-2"></span>
                                 <span className="text-sm text-gray-600">On Trip</span>
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -494,14 +592,28 @@ export default function MyRide() {
                         {data.map((ride) => (
                             <div key={ride._id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-2xl transition-all duration-300">
                                 {/* Vehicle Header Image */}
-                                {ride.images && ride.images.length > 0 ? (
+                                {ride.images && Array.isArray(ride.images) && ride.images.length > 0 ? (
                                     <div className="h-56 relative overflow-hidden">
                                         <img
                                             src={ride.images[0]}
-                                            alt={`${ride.make} ${ride.model}`}
+                                            alt={`${ride.make || 'Vehicle'} ${ride.model || ''}`}
                                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.parentElement.innerHTML = `
+                                                    <div class="h-56 bg-gradient-to-br from-blue-500 via-purple-600 to-blue-700 flex items-center justify-center">
+                                                        <div class="text-center text-white">
+                                                            <svg class="h-16 w-16 mx-auto mb-4 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2v0a2 2 0 01-2-2v-5a2 2 0 00-2-2H8z" />
+                                                            </svg>
+                                                            <p class="text-lg font-medium opacity-90">${ride.make || 'Vehicle'}</p>
+                                                            <p class="text-sm opacity-75">${ride.model || ''}</p>
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            }}
                                         />
-                                        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+
                                         <div className="absolute top-4 right-4 flex gap-2">
                                             {getStatusBadge(ride.runningStatus, ride.isAvailable)}
                                             {getSharingTypeBadge(ride.sharingType)}
@@ -513,8 +625,8 @@ export default function MyRide() {
                                             <svg className="h-16 w-16 mx-auto mb-4 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2v0a2 2 0 01-2-2v-5a2 2 0 00-2-2H8z" />
                                             </svg>
-                                            <p className="text-lg font-medium opacity-90">{ride.make}</p>
-                                            <p className="text-sm opacity-75">{ride.model}</p>
+                                            <p className="text-lg font-medium opacity-90">{ride.make || 'Vehicle'}</p>
+                                            <p className="text-sm opacity-75">{ride.model || ''}</p>
                                         </div>
                                         <div className="absolute top-4 right-4 flex gap-2">
                                             {getStatusBadge(ride.runningStatus, ride.isAvailable)}
@@ -524,34 +636,22 @@ export default function MyRide() {
                                 )}
 
                                 <div className="p-8">
-                                    {/* Vehicle Title & New Status Buttons (RELOCATED) */}
+                                    {/* Vehicle Title & Status Controls */}
                                     <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                        {/* Left: Vehicle Title */}
                                         <div>
-                                            <h6 className="text-1xl font-bold text-gray-900 mb-1">
-                                                {ride.make} {ride.model}
+                                            <h6 className="text-xl font-bold text-gray-900 mb-1">
+                                                {ride.make || 'Unknown'} {ride.model || 'Vehicle'}
                                             </h6>
                                             <div className="flex items-center text-gray-600">
-                                                <svg
-                                                    className="h-4 w-4 mr-2"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                                                    />
+                                                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                                 </svg>
-                                                <span className="font-medium text-base">{ride.vehicleNumber}</span>
+                                                <span className="font-medium text-base">{ride.vehicleNumber || 'N/A'}</span>
                                             </div>
                                         </div>
 
-                                        {/* Right: Availability + Status */}
+                                        {/* Status Controls */}
                                         <div className="flex gap-3">
-                                            {/* Availability */}
                                             <select
                                                 value={ride.isAvailable}
                                                 onChange={(e) => {
@@ -567,9 +667,8 @@ export default function MyRide() {
                                                 <option value={false}>❌ Unavailable</option>
                                             </select>
 
-                                            {/* Running Status */}
                                             <select
-                                                value={ride.runningStatus}
+                                                value={ride.runningStatus || "Available"}
                                                 onChange={(e) =>
                                                     updateRunningStatus(ride._id, e.target.value, ride.isAvailable)
                                                 }
@@ -587,14 +686,12 @@ export default function MyRide() {
                                         </div>
                                     </div>
 
-                                    {/* END RELOCATED STATUS BUTTONS */}
                                     {/* Route Information */}
                                     <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center">
                                                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                                <span className="ml-2 font-semibold text-gray-900">{ride.pickupP}</span>
-
+                                                <span className="ml-2 font-semibold text-gray-900">{ride.pickupP || 'Unknown'}</span>
                                             </div>
                                             <div className="flex-1 mx-4">
                                                 <div className="border-t-2 border-dashed border-gray-300 relative">
@@ -605,7 +702,7 @@ export default function MyRide() {
                                             </div>
                                             <div className="flex items-center">
                                                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                                <span className="ml-2 font-semibold text-gray-900">{ride.dropP}</span>
+                                                <span className="ml-2 font-semibold text-gray-900">{ride.dropP || 'Unknown'}</span>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -625,32 +722,35 @@ export default function MyRide() {
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-gray-600">Year</span>
-                                                <span className="font-semibold text-gray-900">{ride.year}</span>
+                                                <span className="font-semibold text-gray-900">{ride.year || 'N/A'}</span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-gray-600">Seater</span>
-                                                <span className="font-semibold text-gray-900">{ride.seater} seater</span>
+                                                <span className="font-semibold text-gray-900">{ride.seater || 'N/A'} seater</span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-gray-600">Color</span>
                                                 <div className="flex items-center">
-                                                    <div className={`w-4 h-4 rounded-full mr-2 border`} style={{ backgroundColor: ride.color?.toLowerCase() }}></div>
-                                                    <span className="font-semibold text-gray-900">{ride.color}</span>
+                                                    <div 
+                                                        className="w-4 h-4 rounded-full mr-2 border" 
+                                                        style={{ backgroundColor: ride.color?.toLowerCase() || '#gray' }}
+                                                    ></div>
+                                                    <span className="font-semibold text-gray-900">{ride.color || 'N/A'}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-gray-600">Fuel Type</span>
-                                                <span className="font-semibold text-gray-900">{ride.fuelType}</span>
+                                                <span className="font-semibold text-gray-900">{ride.fuelType || 'N/A'}</span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-gray-600">Transmission</span>
-                                                <span className="font-semibold text-gray-900">{ride.transmission}</span>
+                                                <span className="font-semibold text-gray-900">{ride.transmission || 'N/A'}</span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-gray-600">Mileage</span>
-                                                <span className="font-semibold text-gray-900">{ride.mileage} km/l</span>
+                                                <span className="font-semibold text-gray-900">{ride.mileage || 'N/A'} km/l</span>
                                             </div>
                                         </div>
                                     </div>
@@ -660,11 +760,11 @@ export default function MyRide() {
                                         <h4 className="font-semibold text-green-900 mb-3">Pricing Details</h4>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="text-center">
-                                                <div className="text-2xl font-bold text-green-600">₹{ride.price}</div>
+                                                <div className="text-2xl font-bold text-green-600">₹{ride.price || 0}</div>
                                                 <div className="text-sm text-green-700">Base Price</div>
                                             </div>
                                             <div className="text-center">
-                                                <div className="text-2xl font-bold text-blue-600">₹{ride.perPersonCost}</div>
+                                                <div className="text-2xl font-bold text-blue-600">₹{ride.perPersonCost || 0}</div>
                                                 <div className="text-sm text-blue-700">Per Person</div>
                                             </div>
                                         </div>
@@ -676,7 +776,7 @@ export default function MyRide() {
                                     </div>
 
                                     {/* Seat Configuration */}
-                                    {ride.sharingType === "Shared" && ride.seatConfig && ride.seatConfig.length > 0 && (
+                                    {ride.sharingType === "Shared" && ride.seatConfig && Array.isArray(ride.seatConfig) && ride.seatConfig.length > 0 && (
                                         <div className="mb-6">
                                             <div className="flex justify-between items-center mb-4">
                                                 <h4 className="font-semibold text-gray-900">Seat Configuration</h4>
@@ -714,7 +814,7 @@ export default function MyRide() {
                                                 <div className="flex justify-between items-center mb-2">
                                                     <span className="font-medium text-blue-900">Revenue from this ride</span>
                                                     <span className="text-xl font-bold text-blue-600">
-                                                        ₹{ride.seatConfig.reduce((total, seat) => seat.isBooked ? total + seat.seatPrice : total, 0)}
+                                                        ₹{ride.seatConfig.reduce((total, seat) => seat.isBooked ? total + (seat.seatPrice || 0) : total, 0)}
                                                     </span>
                                                 </div>
                                                 <div className="text-sm text-blue-700">
@@ -726,14 +826,20 @@ export default function MyRide() {
 
                                     {/* Action Buttons */}
                                     <div className="flex gap-3 mt-8 pt-4 border-t border-gray-100">
-                                        <button className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center">
+                                        <button 
+                                            onClick={() => openCarUpdateForm(ride)} 
+                                            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center"
+                                        >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                             </svg>
                                             Edit Details
                                         </button>
-                                        <button onClick={() => openUpdateForm(ride._id)} className="flex-1 border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium flex items-center justify-center">
+                                        <button 
+                                            onClick={() => openSeatUpdateForm(ride._id)} 
+                                            className="flex-1 border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium flex items-center justify-center"
+                                        >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
@@ -746,16 +852,28 @@ export default function MyRide() {
                     </div>
                 )}
 
+                {/* Modals */}
                 {isUpdateFormOpen && selectedCar && (
                     <SeatConfigUpdate
                         open={isUpdateFormOpen}
                         onClose={closeUpdateForm}
                         car={selectedCar}
+                        onUpdateSuccess={() => {
+                            // Refresh data after seat update
+                            window.location.reload();
+                        }}
                     />
                 )}
 
+                {isCarUpdateFormOpen && selectedCarForDetails && (
+                    <CarUpdate
+                        open={isCarUpdateFormOpen}
+                        onClose={closeCarUpdateForm}
+                        car={selectedCarForDetails}
+                        onUpdateSuccess={handleUpdateSuccess}
+                    />
+                )}
             </div>
         </div>
-
     );
 }
