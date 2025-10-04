@@ -4,188 +4,225 @@ import { baseUrl } from "../../../baseUrl";
 import SeatConfigUpdate from "./seat_update";
 import CarUpdate from "./car_details_update";
 
-// Chart Components (You can replace these with your preferred charting library like Chart.js, Recharts, etc.)
+// ----------------- Revenue Chart -----------------
 const RevenueBarChart = ({ data }) => {
-    return (
-        <div className="h-64 flex items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-            <div className="text-center">
-                <div className="flex space-x-8 items-end justify-center h-32">
-                    <div className="flex flex-col items-center">
-                        <div
-                            className="bg-blue-500 rounded-t-lg w-12 transition-all duration-1000 ease-out"
-                            style={{ height: `${Math.max(data.Shared, data.Private) > 0 ? (data.Shared / Math.max(data.Shared, data.Private)) * 100 : 0}px` }}
-                        ></div>
-                        <p className="text-xs mt-2 font-medium">Shared</p>
-                        <p className="text-xs text-gray-600">₹{data.Shared.toLocaleString()}</p>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <div
-                            className="bg-green-500 rounded-t-lg w-12 transition-all duration-1000 ease-out delay-200"
-                            style={{ height: `${Math.max(data.Shared, data.Private) > 0 ? (data.Private / Math.max(data.Shared, data.Private)) * 100 : 0}px` }}
-                        ></div>
-                        <p className="text-xs mt-2 font-medium">Private</p>
-                        <p className="text-xs text-gray-600">₹{data.Private.toLocaleString()}</p>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="h-48 sm:h-64 flex items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-2 sm:p-4">
+      <div className="text-center">
+        <div className="flex space-x-4 sm:space-x-8 items-end justify-center h-28 sm:h-32">
+          <div className="flex flex-col items-center">
+            <div
+              className="bg-blue-500 rounded-t-lg w-8 sm:w-12 transition-all duration-1000 ease-out"
+              style={{
+                height: `${
+                  Math.max(data.Shared, data.Private) > 0
+                    ? (data.Shared / Math.max(data.Shared, data.Private)) * 100
+                    : 0
+                }px`,
+              }}
+            ></div>
+            <p className="text-[10px] sm:text-xs mt-1 sm:mt-2 font-medium">
+              Shared
+            </p>
+            <p className="text-[10px] sm:text-xs text-gray-600">
+              ₹{data.Shared.toLocaleString()}
+            </p>
+          </div>
+          <div className="flex flex-col items-center">
+            <div
+              className="bg-green-500 rounded-t-lg w-8 sm:w-12 transition-all duration-1000 ease-out delay-200"
+              style={{
+                height: `${
+                  Math.max(data.Shared, data.Private) > 0
+                    ? (data.Private / Math.max(data.Shared, data.Private)) * 100
+                    : 0
+                }px`,
+              }}
+            ></div>
+            <p className="text-[10px] sm:text-xs mt-1 sm:mt-2 font-medium">
+              Private
+            </p>
+            <p className="text-[10px] sm:text-xs text-gray-600">
+              ₹{data.Private.toLocaleString()}
+            </p>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
+// ----------------- Seat Type Pie -----------------
 const SeatTypePieChart = ({ data }) => {
-    const total = data.AC + data.NonAC;
-    const acPercentage = total > 0 ? (data.AC / total) * 100 : 0;
-    const nonAcPercentage = total > 0 ? (data.NonAC / total) * 100 : 0;
+  const total = data.AC + data.NonAC;
+  const acPercentage = total > 0 ? (data.AC / total) * 100 : 0;
+  const nonAcPercentage = total > 0 ? (data.NonAC / total) * 100 : 0;
 
-    return (
-        <div className="h-64 flex items-center justify-center">
+  return (
+    <div className="h-48 sm:h-64 flex items-center justify-center">
+      <div className="text-center">
+        <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-3 sm:mb-4">
+          <svg
+            className="w-24 h-24 sm:w-32 sm:h-32 transform -rotate-90"
+            viewBox="0 0 36 36"
+          >
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#e5e7eb"
+              strokeWidth="2"
+            />
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#3b82f6"
+              strokeWidth="2"
+              strokeDasharray={`${acPercentage}, 100`}
+            />
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#f97316"
+              strokeWidth="2"
+              strokeDasharray={`${nonAcPercentage}, 100`}
+              strokeDashoffset={-acPercentage}
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-                <div className="relative w-32 h-32 mx-auto mb-4">
-                    <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
-                        <path
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                            fill="none"
-                            stroke="#e5e7eb"
-                            strokeWidth="2"
-                        />
-                        <path
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                            fill="none"
-                            stroke="#3b82f6"
-                            strokeWidth="2"
-                            strokeDasharray={`${acPercentage}, 100`}
-                        />
-                        <path
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                            fill="none"
-                            stroke="#f97316"
-                            strokeWidth="2"
-                            strokeDasharray={`${nonAcPercentage}, 100`}
-                            strokeDashoffset={-acPercentage}
-                        />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="text-lg font-bold text-gray-900">₹{total.toLocaleString()}</div>
-                            <div className="text-xs text-gray-600">Total</div>
-                        </div>
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <div className="flex items-center justify-center space-x-2">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm">AC: {acPercentage.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex items-center justify-center space-x-2">
-                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                        <span className="text-sm">Non-AC: {nonAcPercentage.toFixed(1)}%</span>
-                    </div>
-                </div>
+              <div className="text-sm sm:text-lg font-bold text-gray-900">
+                ₹{total.toLocaleString()}
+              </div>
+              <div className="text-[10px] sm:text-xs text-gray-600">Total</div>
             </div>
+          </div>
         </div>
-    );
+        <div className="space-y-1 sm:space-y-2">
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-2 sm:w-3 h-2 sm:h-3 bg-blue-500 rounded-full"></div>
+            <span className="text-xs sm:text-sm">
+              AC: {acPercentage.toFixed(1)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-2 sm:w-3 h-2 sm:h-3 bg-orange-500 rounded-full"></div>
+            <span className="text-xs sm:text-sm">
+              Non-AC: {nonAcPercentage.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
+// ----------------- Monthly Trend -----------------
 const MonthlyTrendChart = ({ data }) => {
-    const maxRevenue = Math.max(...data.map(d => d.revenue));
+  const maxRevenue = Math.max(...data.map((d) => d.revenue));
 
-    return (
-        <div className="h-64 flex items-center justify-center p-4">
-            <div className="w-full">
-                <div className="flex items-end justify-between h-32 border-b-2 border-gray-200">
-                    {data.map((point, index) => (
-                        <div key={index} className="flex flex-col items-center flex-1 mx-1">
-                            <div className="relative flex-1 flex flex-col justify-end">
-                                <div
-                                    className="bg-purple-500 rounded-t-lg w-8 transition-all duration-1000 ease-out"
-                                    style={{
-                                        height: `${maxRevenue > 0 ? (point.revenue / maxRevenue) * 100 : 0}px`,
-                                        animationDelay: `${index * 200}ms`
-                                    }}
-                                ></div>
-                            </div>
-                            <p className="text-xs mt-2 font-medium text-gray-700">{point.month.split(' ')[0]}</p>
-                            <p className="text-xs text-gray-500">₹{point.revenue.toLocaleString()}</p>
-                        </div>
-                    ))}
-                </div>
-                <div className="mt-4 text-center">
-                    <p className="text-sm text-green-600 font-medium">
-                        📈 Revenue growing by {data.length > 1 ? ((data[data.length - 1].revenue - data[0].revenue) / Math.max(data[0].revenue, 1) * 100).toFixed(1) : 0}%
-                    </p>
-                </div>
+  return (
+    <div className="h-48 sm:h-64 flex items-center justify-center p-2 sm:p-4">
+      <div className="w-full">
+        <div className="flex items-end justify-between h-28 sm:h-32 border-b-2 border-gray-200">
+          {data.map((point, index) => (
+            <div
+              key={index}
+              className="flex flex-col items-center flex-1 mx-0.5 sm:mx-1"
+            >
+              <div className="relative flex-1 flex flex-col justify-end">
+                <div
+                  className="bg-purple-500 rounded-t-lg w-6 sm:w-8 transition-all duration-1000 ease-out"
+                  style={{
+                    height: `${
+                      maxRevenue > 0
+                        ? (point.revenue / maxRevenue) * 100
+                        : 0
+                    }px`,
+                    animationDelay: `${index * 200}ms`,
+                  }}
+                ></div>
+              </div>
+              <p className="text-[10px] sm:text-xs mt-1 sm:mt-2 font-medium text-gray-700">
+                {point.month.split(" ")[0]}
+              </p>
+              <p className="text-[10px] sm:text-xs text-gray-500">
+                ₹{point.revenue.toLocaleString()}
+              </p>
             </div>
+          ))}
         </div>
-    );
+        <div className="mt-2 sm:mt-4 text-center">
+          <p className="text-xs sm:text-sm text-green-600 font-medium">
+            📈 Growth{" "}
+            {data.length > 1
+              ? (
+                  ((data[data.length - 1].revenue - data[0].revenue) /
+                    Math.max(data[0].revenue, 1)) *
+                  100
+                ).toFixed(1)
+              : 0}
+            %
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-// Enhanced Chart Integration Component
+// ----------------- Chart Dashboard Wrapper -----------------
 export const ChartDashboard = ({ revenueData }) => {
-    const [animationComplete, setAnimationComplete] = useState(false);
+  const [animationComplete, setAnimationComplete] = useState(false);
 
-    useEffect(() => {
-        const timer = setTimeout(() => setAnimationComplete(true), 500);
-        return () => clearTimeout(timer);
-    }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimationComplete(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
-    // Ensure revenueData is not undefined and has the expected properties
-    const sharingTypeRevenue = revenueData?.sharingTypeRevenue || { Shared: 0, Private: 0 };
+  const sharingTypeRevenue =
+    revenueData?.sharingTypeRevenue || { Shared: 0, Private: 0 };
 
-    const chartData = {
-        sharingType: sharingTypeRevenue,
-        seatType: {
-            AC: 9600,  // This would come from your actual data
-            NonAC: 1800
-        },
-        monthlyTrend: [
-            { month: "July 2025", revenue: 8500 },
-            { month: "August 2025", revenue: 10300 },
-            { month: "September 2025", revenue: revenueData?.totalRevenue || 0 }
-        ]
-    };
+  const chartData = {
+    sharingType: sharingTypeRevenue,
+    seatType: {
+      AC: 9600,
+      NonAC: 1800,
+    },
+    monthlyTrend: [
+      { month: "July 2025", revenue: 8500 },
+      { month: "August 2025", revenue: 10300 },
+      { month: "September 2025", revenue: revenueData?.totalRevenue || 0 },
+    ],
+  };
 
-    return (
-        <div className={`grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8 transition-all duration-500 ${animationComplete ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Revenue by Sharing Type</h3>
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                        <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                    </div>
-                </div>
-                <RevenueBarChart data={chartData.sharingType} />
-            </div>
+  return (
+    <div
+      className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-8 mb-6 sm:mb-8 transition-all duration-500 ${
+        animationComplete ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+          Revenue by Sharing Type
+        </h3>
+        <RevenueBarChart data={chartData.sharingType} />
+      </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Seat Type Preference</h3>
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                        <svg className="h-5 w-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                        </svg>
-                    </div>
-                </div>
-                <SeatTypePieChart data={chartData.seatType} />
-            </div>
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+          Seat Type Preference
+        </h3>
+        <SeatTypePieChart data={chartData.seatType} />
+      </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-lg transition-shadow lg:col-span-2 xl:col-span-1">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Monthly Revenue Trend</h3>
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                        <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                    </div>
-                </div>
-                <MonthlyTrendChart data={chartData.monthlyTrend} />
-            </div>
-        </div>
-    );
-};
-
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow md:col-span-2 xl:col-span-1">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+          Monthly Revenue Trend
+        </h3>
+        <MonthlyTrendChart data={chartData.monthlyTrend} />
+      </div>
+    </div>
+  );
+}
 export default function MyRide() {
     const [data, setData] = useState([]);
     const [selectedCar, setSelectedCar] = useState(null);
