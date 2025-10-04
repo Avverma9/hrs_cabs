@@ -210,219 +210,292 @@ export default function CarUpdate({ car, onClose, open, onUpdateSuccess = () => 
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <input
-            name="make"
-            value={formData.make}
-            onChange={handleChange}
-            placeholder="Make"
-            className="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-indigo-300"
-            list="makes"
-          />
-          <datalist id="makes">
-            {makes.map((m, i) => (
-              <option key={i} value={m} />
-            ))}
-          </datalist>
-
-          <input
-            name="model"
-            value={formData.model}
-            onChange={handleChange}
-            placeholder="Model"
-            className="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-indigo-300"
-            list="models"
-          />
-          <datalist id="models">
-            {modelOptions.map((m, i) => (
-              <option key={i} value={m} />
-            ))}
-          </datalist>
-
-          <input
-            name="year"
-            type="number"
-            placeholder="Year"
-            value={formData.year}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          />
-
-          <input
-            name="vehicleNumber"
-            placeholder="Car Number"
-            value={formData.vehicleNumber}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          />
-
-          <select
-            name="color"
-            value={formData.color}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          >
-            <option value="">Select Color</option>
-            {["Red", "Blue", "Black", "White", "Silver", "Green"].map((clr) => (
-              <option key={clr} value={clr}>
-                {clr}
-              </option>
-            ))}
-          </select>
-
-          <select
-            name="seater"
-            value={formData.seater}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          >
-            <option value="">Select Seater</option>
-            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-
-          <select
-            name="fuelType"
-            value={formData.fuelType}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          >
-            <option value="">Fuel Type</option>
-            {["Petrol", "Diesel", "Electric", "Hybrid"].map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-
-          <select
-            name="vehicleType"
-            value={formData.vehicleType}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          >
-            <option value="">Vehicle Type</option>
-            {["Car", "Bike", "Bus"].map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-
-          <select
-            name="sharingType"
-            value={formData.sharingType}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          >
-            <option value="">Sharing Type</option>
-            {["Private", "Shared"].map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-
-          <select
-            name="transmission"
-            value={formData.transmission}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          >
-            <option value="">Transmission</option>
-            <option value="Automatic">Automatic</option>
-            <option value="Manual">Manual</option>
-          </select>
-
-          <div className="flex items-center border rounded-lg px-3 py-2">
-            <Speed className="text-gray-500 mr-2" />
+          {/* Make */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Make</label>
             <input
-              name="mileage"
+              name="make"
+              value={formData.make}
+              onChange={handleChange}
+              placeholder="Make"
+              className="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-indigo-300"
+              list="makes"
+            />
+            <datalist id="makes">
+              {makes.map((m, i) => (
+                <option key={i} value={m} />
+              ))}
+            </datalist>
+          </div>
+
+          {/* Model */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Model</label>
+            <input
+              name="model"
+              value={formData.model}
+              onChange={handleChange}
+              placeholder="Model"
+              className="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-indigo-300"
+              list="models"
+            />
+            <datalist id="models">
+              {modelOptions.map((m, i) => (
+                <option key={i} value={m} />
+              ))}
+            </datalist>
+          </div>
+
+          {/* Year */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Year</label>
+            <input
+              name="year"
               type="number"
-              placeholder="Mileage (KM/L)"
-              value={formData.mileage}
+              placeholder="Year"
+              value={formData.year}
               onChange={handleChange}
-              className="w-full outline-none"
+              className="border rounded-lg px-3 py-2 w-full"
             />
           </div>
 
-          <div className="flex items-center border rounded-lg px-3 py-2">
-            <FaLocationArrow className="text-gray-500 mr-2" />
+          {/* Vehicle Number */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Car Number</label>
             <input
-              name="pickupP"
-              placeholder="Pickup Location"
-              value={formData.pickupP}
+              name="vehicleNumber"
+              placeholder="Car Number"
+              value={formData.vehicleNumber}
               onChange={handleChange}
-              className="w-full outline-none"
+              className="border rounded-lg px-3 py-2 w-full"
             />
           </div>
 
-          <div className="flex items-center border rounded-lg px-3 py-2">
-            <FaLocationArrow className="text-gray-500 mr-2" />
+          {/* Color */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Color</label>
+            <select
+              name="color"
+              value={formData.color}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 w-full"
+            >
+              <option value="">Select Color</option>
+              {["Red", "Blue", "Black", "White", "Silver", "Green"].map((clr) => (
+                <option key={clr} value={clr}>
+                  {clr}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Seater */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Seater</label>
+            <select
+              name="seater"
+              value={formData.seater}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 w-full"
+            >
+              <option value="">Select Seater</option>
+              {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Fuel Type */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Fuel Type</label>
+            <select
+              name="fuelType"
+              value={formData.fuelType}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 w-full"
+            >
+              <option value="">Fuel Type</option>
+              {["Petrol", "Diesel", "Electric", "Hybrid"].map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Vehicle Type */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Vehicle Type</label>
+            <select
+              name="vehicleType"
+              value={formData.vehicleType}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 w-full"
+            >
+              <option value="">Vehicle Type</option>
+              {["Car", "Bike", "Bus"].map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sharing Type */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Sharing Type</label>
+            <select
+              name="sharingType"
+              value={formData.sharingType}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 w-full"
+            >
+              <option value="">Sharing Type</option>
+              {["Private", "Shared"].map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Transmission */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Transmission</label>
+            <select
+              name="transmission"
+              value={formData.transmission}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 w-full"
+            >
+              <option value="">Transmission</option>
+              <option value="Automatic">Automatic</option>
+              <option value="Manual">Manual</option>
+            </select>
+          </div>
+
+          {/* Mileage */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Mileage (KM/L)</label>
+            <div className="flex items-center border rounded-lg px-3 py-2">
+              <Speed className="text-gray-500 mr-2" />
+              <input
+                name="mileage"
+                type="number"
+                placeholder="Mileage (KM/L)"
+                value={formData.mileage}
+                onChange={handleChange}
+                className="w-full outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Pickup Location */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Pickup Location</label>
+            <div className="flex items-center border rounded-lg px-3 py-2">
+              <FaLocationArrow className="text-gray-500 mr-2" />
+              <input
+                name="pickupP"
+                placeholder="Pickup Location"
+                value={formData.pickupP}
+                onChange={handleChange}
+                className="w-full outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Drop Location */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Drop Location</label>
+            <div className="flex items-center border rounded-lg px-3 py-2">
+              <FaLocationArrow className="text-gray-500 mr-2" />
+              <input
+                name="dropP"
+                placeholder="Drop Location"
+                value={formData.dropP}
+                onChange={handleChange}
+                className="w-full outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Pickup DateTime */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Pickup Date & Time</label>
             <input
-              name="dropP"
-              placeholder="Drop Location"
-              value={formData.dropP}
+              type="datetime-local"
+              name="pickupD"
+              value={formData.pickupD}
               onChange={handleChange}
-              className="w-full outline-none"
+              className="border rounded-lg px-3 py-2 w-full"
             />
           </div>
 
-          <input
-            type="datetime-local"
-            name="pickupD"
-            value={formData.pickupD}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          />
-
-          <input
-            type="datetime-local"
-            name="dropD"
-            value={formData.dropD}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          />
-
-          <div className="flex items-center border rounded-lg px-3 py-2">
-            <FaIndianRupeeSign className="text-gray-500 mr-2" />
+          {/* Drop DateTime */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Drop Date & Time</label>
             <input
-              name="price"
-              type="number"
-              placeholder="Full Ride Price"
-              value={formData.price}
+              type="datetime-local"
+              name="dropD"
+              value={formData.dropD}
               onChange={handleChange}
-              className="w-full outline-none"
+              className="border rounded-lg px-3 py-2 w-full"
             />
           </div>
 
-          <div className="flex items-center border rounded-lg px-3 py-2">
-            <FaIndianRupeeSign className="text-gray-500 mr-2" />
+          {/* Full Ride Price */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Full Ride Price</label>
+            <div className="flex items-center border rounded-lg px-3 py-2">
+              <FaIndianRupeeSign className="text-gray-500 mr-2" />
+              <input
+                name="price"
+                type="number"
+                placeholder="Full Ride Price"
+                value={formData.price}
+                onChange={handleChange}
+                className="w-full outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Per Person Cost */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Per Person Cost</label>
+            <div className="flex items-center border rounded-lg px-3 py-2">
+              <FaIndianRupeeSign className="text-gray-500 mr-2" />
+              <input
+                name="perPersonCost"
+                type="number"
+                placeholder="Per Person Cost"
+                value={formData.perPersonCost}
+                onChange={handleChange}
+                className="w-full outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Extra KM Charge */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Extra KM Charge</label>
             <input
-              name="perPersonCost"
-              type="number"
-              placeholder="Per Person Cost"
-              value={formData.perPersonCost}
+              name="extraKm"
+              placeholder="Extra KM Charge"
+              value={formData.extraKm}
               onChange={handleChange}
-              className="w-full outline-none"
+              className="border rounded-lg px-3 py-2 w-full"
             />
           </div>
-
-          <input
-            name="extraKm"
-            placeholder="Extra KM Charge"
-            value={formData.extraKm}
-            onChange={handleChange}
-            className="border rounded-lg px-3 py-2 w-full"
-          />
 
           {/* Image Upload */}
           <div className="col-span-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Upload New Images</label>
             <label className="flex items-center justify-center border-2 border-dashed rounded-lg px-4 py-6 cursor-pointer text-indigo-600 hover:bg-indigo-50">
               <PhotoCamera className="mr-2" />
-              Upload New Images
+              <span>Choose Images</span>
               <input type="file" hidden accept="image/*" multiple onChange={handleFileChange} />
             </label>
             {imagePreviews.length > 0 && (
