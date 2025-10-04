@@ -4,7 +4,7 @@ import { baseUrl } from "../../../baseUrl";
 import SeatConfigUpdate from "./seat_update";
 import CarUpdate from "./car_details_update";
 
-
+//no chnages
 // Chart Components (You can replace these with your preferred charting library like Chart.js, Recharts, etc.)
 const RevenueBarChart = ({ data }) => {
     return (
@@ -181,6 +181,9 @@ export const ChartDashboard = ({ revenueData }) => {
 
 export default function MyRide() {
     const [data, setData] = useState([]);
+    const [successAlert, setSuccessAlert] = useState("");
+    const [selectedSeat, setSelectedSeat] = useState(null);
+    const [showSeatPopup, setShowSeatPopup] = useState(false);
     const [selectedCar, setSelectedCar] = useState(null);
     const [selectedCarForDetails, setSelectedCarForDetails] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -190,25 +193,25 @@ export default function MyRide() {
     const [selectedTab, setSelectedTab] = useState('overview');
     const [isCarUpdateFormOpen, setIsCarUpdateFormOpen] = useState(false);
 
+    const fetchRides = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`${baseUrl}/travel/get-a-car/by-owner/${userId}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const result = await response.json();
+            setData(Array.isArray(result) ? result : []);
+            setError("");
+        } catch (error) {
+            console.error('Error fetching rides:', error);
+            setError("Failed to load rides. Please try again.");
+            setData([]);
+        } finally {
+            setLoading(false);
+        }
+    };
     useEffect(() => {
-        const fetchRides = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch(`${baseUrl}/travel/get-a-car/by-owner/${userId}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const result = await response.json();
-                setData(Array.isArray(result) ? result : []);
-                setError("");
-            } catch (error) {
-                console.error('Error fetching rides:', error);
-                setError("Failed to load rides. Please try again.");
-                setData([]);
-            } finally {
-                setLoading(false);
-            }
-        };
         if (userId) fetchRides();
-    }, []);
+    }, [userId]);
 
     const updateRunningStatus = async (carId, newStatus, newAvailability) => {
         try {
@@ -268,15 +271,42 @@ export default function MyRide() {
     if (loading) return (<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div><p className="text-gray-600 font-medium">Loading your rides...</p></div></div>);
     
     const openSeatUpdateForm = (carId) => { const carToEdit = data.find(car => car._id === carId); if (carToEdit) { setSelectedCar(carToEdit); setEditingCarId(carId); setIsUpdateFormOpen(true); } };
+    const handleSeatClick = (seat) => {
+        if (seat.isBooked && seat.bookedBy) {
+            setSelectedSeat(seat);
+            setShowSeatPopup(true);
+        }
+    };
+    const closeSeatPopup = () => {
+        setShowSeatPopup(false);
+        setSelectedSeat(null);
+    };
     const openCarUpdateForm = (car) => { setSelectedCarForDetails(car); setIsCarUpdateFormOpen(true); };
-    const handleUpdateSuccess = (updatedCar) => { setData(prevData => prevData.map(car => car._id === updatedCar._id ? updatedCar : car)); setIsCarUpdateFormOpen(false); setSelectedCarForDetails(null); };
+    const handleUpdateSuccess = (updatedCar) => {
+        setSuccessAlert("Update successful!");
+        setIsCarUpdateFormOpen(false);
+        setSelectedCarForDetails(null);
+        fetchRides();
+        setTimeout(() => setSuccessAlert(""), 2000);
+    };
     const closeUpdateForm = () => { setIsUpdateFormOpen(false); setSelectedCar(null); setEditingCarId(null); };
+    const handleSeatUpdateSuccess = () => {
+        setSuccessAlert("Update successful!");
+        closeUpdateForm();
+        fetchRides();
+        setTimeout(() => setSuccessAlert(""), 2000);
+    };
     const closeCarUpdateForm = () => { setIsCarUpdateFormOpen(false); setSelectedCarForDetails(null); };
 
     const revenueData = calculateRevenueData();
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-16">
+            {successAlert && (
+                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-center font-semibold transition-all">
+                    {successAlert}
+                </div>
+            )}
             <div className="bg-white shadow-sm border-b">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -364,11 +394,43 @@ export default function MyRide() {
                                         <div className="mb-6">
                                             <div className="flex justify-between items-center mb-3"><h4 className="font-semibold text-gray-900">Seat Configuration</h4><div className="text-sm text-gray-600">{ride.seatConfig.filter(seat => seat.isBooked).length}/{ride.seatConfig.length} Booked</div></div>
                                             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
-                                                {ride.seatConfig.map((seat) => (<div key={seat._id} className={`relative p-2 rounded-lg border-2 text-center transition-all ${seat.isBooked ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100'}`}><div className="font-bold text-base sm:text-lg">{seat.seatNumber}</div><div className="text-xs font-medium">{seat.seatType}</div><div className="text-xs font-bold">₹{seat.seatPrice}</div></div>))}
+                                                {ride.seatConfig.map((seat) => (
+                                                    <div
+                                                        key={seat._id}
+                                                        className={`relative p-2 rounded-lg border-2 text-center transition-all cursor-pointer ${seat.isBooked ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100'}`}
+                                                        onClick={() => handleSeatClick(seat)}
+                                                    >
+                                                        <div className="font-bold text-base sm:text-lg">{seat.seatNumber}</div>
+                                                        <div className="text-xs font-medium">{seat.seatType}</div>
+                                                        <div className="text-xs font-bold">₹{seat.seatPrice}</div>
+                                                    </div>
+                                                ))}
                                             </div>
                                             <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-100"><div className="flex justify-between items-center mb-1"><span className="font-medium text-blue-900">Ride Revenue</span><span className="text-lg sm:text-xl font-bold text-blue-600">₹{ride.seatConfig.reduce((total, seat) => seat.isBooked ? total + (seat.seatPrice || 0) : total, 0)}</span></div><div className="text-xs sm:text-sm text-blue-700">Occupancy: {Math.round((ride.seatConfig.filter(s => s.isBooked).length / ride.seatConfig.length) * 100)}%</div></div>
                                         </div>
                                     )}
+            {/* Seat Details Popup */}
+            {showSeatPopup && selectedSeat && (
+                <div className="fixed inset-0 bg-gray-1000 bg-opacity-20 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-lg p-6 max-w-xs w-full mx-2 relative">
+                        <button
+                            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg font-bold"
+                            onClick={closeSeatPopup}
+                            aria-label="Close"
+                        >×</button>
+                        <h3 className="text-lg font-bold text-indigo-700 mb-4 text-center">Seat Details</h3>
+                        <div className="space-y-2 text-sm">
+                            <div><span className="font-semibold text-gray-700">Seat Number:</span> {selectedSeat.seatNumber}</div>
+                            <div><span className="font-semibold text-gray-700">Type:</span> {selectedSeat.seatType}</div>
+                            <div><span className="font-semibold text-gray-700">Price:</span> ₹{selectedSeat.seatPrice}</div>
+                            <div><span className="font-semibold text-gray-700">Booked:</span> {selectedSeat.isBooked ? 'Yes' : 'No'}</div>
+                            {selectedSeat.isBooked && (
+                                <div><span className="font-semibold text-gray-700">Booked By:</span> {selectedSeat.bookedBy || 'N/A'}</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
                                     <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-4 border-t border-gray-100">
                                         <button onClick={() => openCarUpdateForm(ride)} className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center"><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>Edit Details</button>
@@ -380,7 +442,7 @@ export default function MyRide() {
                     </div>
                 )}
 
-                {isUpdateFormOpen && selectedCar && <SeatConfigUpdate open={isUpdateFormOpen} onClose={closeUpdateForm} car={selectedCar} onUpdateSuccess={() => window.location.reload()} />}
+                {isUpdateFormOpen && selectedCar && <SeatConfigUpdate open={isUpdateFormOpen} onClose={closeUpdateForm} car={selectedCar} onUpdateSuccess={handleSeatUpdateSuccess} />}
                 {isCarUpdateFormOpen && selectedCarForDetails && <CarUpdate open={isCarUpdateFormOpen} onClose={closeCarUpdateForm} car={selectedCarForDetails} onUpdateSuccess={handleUpdateSuccess} />}
             </div>
         </div>
