@@ -21,6 +21,10 @@ const UserIcon = () => (
 
 export default function Header() {
     const [profileOpen, setProfileOpen] = useState(false);
+    const handleLogout = () => {
+        localStorage.removeItem('userData');
+        window.location.href = '/';
+    };
     if (window.location.pathname === "/") {
         return null; // Don't render Header on the login page
     }
@@ -44,7 +48,12 @@ export default function Header() {
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20 py-1">
                             <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Your Profile</a>
                             <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
-                            <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                            <button
+                                onClick={handleLogout}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                                Logout
+                            </button>
                         </div>
                     )}
                 </div>
