@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 // SVG Icons
 const CabIcon = () => (
@@ -23,21 +24,21 @@ export default function Header() {
     const [profileOpen, setProfileOpen] = useState(false);
     const handleLogout = () => {
         localStorage.removeItem('userData');
-        window.location.href = '/';
+        window.location.href = '/login';
     };
-    if (window.location.pathname === "/") {
+    if (window.location.pathname === "/" ) {
         return null; // Don't render Header on the login page
     }
     return (
         <header className="fixed top-0 left-0 right-0 bg-white/70 backdrop-blur-md shadow-md z-50">
             <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
                 {/* Logo */}
-                <div className="flex items-center space-x-3">
-                    <div className="bg-yellow-400 p-2 rounded-full">
+                <Link to="/home" className="flex items-center space-x-3">
+                    <div className="bg-yellow-400 p-2 rounded-full transition-transform hover:scale-110">
                         <CabIcon />
                     </div>
                     <h1 className="text-2xl font-bold text-gray-800">HRS Cabs</h1>
-                </div>
+                </Link>
 
                 {/* Profile Section */}
                 <div className="relative">
@@ -46,8 +47,9 @@ export default function Header() {
                     </button>
                     {profileOpen && (
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20 py-1">
-                            <a href="/" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Your Profile</a>
-                            <a href="/bookings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Bookings</a>
+                            <Link to="/home" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Ride</Link>
+                            <Link to="/bookings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Bookings</Link>
+                            <Link to="/add-car" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Add Car</Link>
                             <button
                                 onClick={handleLogout}
                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

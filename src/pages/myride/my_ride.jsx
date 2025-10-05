@@ -346,7 +346,7 @@ export default function MyRide() {
     const revenueData = calculateRevenueData();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-16">
+        <div>
             {successAlert && (
                 <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-center font-semibold transition-all">
                     {successAlert}
