@@ -26,8 +26,8 @@ export default function Header() {
         localStorage.removeItem('userData');
         window.location.href = '/login';
     };
-    if (window.location.pathname === "/" ) {
-        return null; // Don't render Header on the login page
+    if (window.location.pathname === "/login" ) {
+        return null; // Don't render Header on the login page.
     }
     return (
         <header className="fixed top-0 left-0 right-0 bg-white/70 backdrop-blur-md shadow-md z-50">
