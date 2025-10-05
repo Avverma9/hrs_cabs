@@ -19,10 +19,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Login page without header/footer */}
         <Route path="/" element={<Login />} />
-
-        {/* Home page with header/footer */}
         <Route path="/home" element={<Layout />} />
       </Routes>
     </Router>

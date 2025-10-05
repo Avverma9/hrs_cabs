@@ -3,6 +3,8 @@ import { userId } from "../../../util/configs";
 import { baseUrl } from "../../../baseUrl";
 import SeatConfigUpdate from "./seat_update";
 import CarUpdate from "./car_details_update";
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 
 //no chnages
 // Chart Components (You can replace these with your preferred charting library like Chart.js, Recharts, etc.)
@@ -178,10 +180,39 @@ export const ChartDashboard = ({ revenueData }) => {
     );
 };
 
+const RideCardSkeleton = () => (
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="h-48 sm:h-56 bg-gray-200 animate-pulse"></div>
+        <div className="p-4 sm:p-6">
+            <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                <div>
+                    <div className="h-6 w-40 bg-gray-300 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="flex flex-row sm:flex-col lg:flex-row gap-4">
+                    <div className="h-9 w-24 bg-gray-200 rounded-lg animate-pulse"></div>
+                    <div className="h-9 w-24 bg-gray-200 rounded-lg animate-pulse"></div>
+                </div>
+            </div>
+            <div className="mb-6 p-4 bg-gray-100 rounded-lg border border-gray-200 animate-pulse">
+                <div className="h-5 w-full bg-gray-200 rounded mb-3"></div>
+                <div className="flex justify-between">
+                    <div className="h-4 w-1/3 bg-gray-200 rounded"></div>
+                    <div className="h-4 w-1/3 bg-gray-200 rounded"></div>
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+                {[...Array(6)].map((_, i) => <div key={i} className="h-4 bg-gray-200 rounded animate-pulse"></div>)}
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-6 pt-4 border-t border-gray-100"><div className="h-10 flex-1 bg-gray-300 rounded-lg animate-pulse"></div><div className="h-10 flex-1 bg-gray-200 rounded-lg animate-pulse"></div></div>
+        </div>
+    </div>
+);
 
 export default function MyRide() {
     const [data, setData] = useState([]);
     const [successAlert, setSuccessAlert] = useState("");
+    const [activeRides, setActiveRides] = useState([]);
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [showSeatPopup, setShowSeatPopup] = useState(false);
     const [selectedCar, setSelectedCar] = useState(null);
@@ -191,6 +222,8 @@ export default function MyRide() {
     const [editingCarId, setEditingCarId] = useState(null);
     const [isUpdateFormOpen, setIsUpdateFormOpen] = useState(false);
     const [selectedTab, setSelectedTab] = useState('overview');
+    const [expandedSeats, setExpandedSeats] = useState({});
+    const [rideViewFilter, setRideViewFilter] = useState('active'); // 'active' or 'inactive'
     const [isCarUpdateFormOpen, setIsCarUpdateFormOpen] = useState(false);
 
     const fetchRides = async () => {
@@ -199,12 +232,15 @@ export default function MyRide() {
             const response = await fetch(`${baseUrl}/travel/get-a-car/by-owner/${userId}`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const result = await response.json();
-            setData(Array.isArray(result) ? result : []);
+            const allRides = Array.isArray(result) ? result : [];
+            setData(allRides);
+            setActiveRides(allRides.filter(ride => ride.isAvailable));
             setError("");
         } catch (error) {
             console.error('Error fetching rides:', error);
             setError("Failed to load rides. Please try again.");
             setData([]);
+            setActiveRides([]);
         } finally {
             setLoading(false);
         }
@@ -224,7 +260,11 @@ export default function MyRide() {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.message || 'Failed to update status');
             }
-            setData(prevData => prevData.map(car => car._id === carId ? { ...car, runningStatus: newStatus, isAvailable: newAvailability } : car));
+            const updatedData = data.map(car => car._id === carId ? { ...car, runningStatus: newStatus, isAvailable: newAvailability } : car);
+            setData(updatedData);
+            setActiveRides(updatedData.filter(ride => ride.isAvailable));
+            setSuccessAlert("Status updated successfully!");
+            setTimeout(() => setSuccessAlert(""), 2000);
         } catch (error) {
             console.error('Error updating running status:', error);
             setError("Failed to update vehicle status. Please try again.");
@@ -255,6 +295,13 @@ export default function MyRide() {
         return { totalRevenue, totalBookedSeats, totalAvailableSeats, routeRevenue, vehicleTypeRevenue, sharingTypeRevenue };
     };
 
+    const toggleSeats = (rideId) => {
+        setExpandedSeats(prev => ({
+            ...prev,
+            [rideId]: !prev[rideId]
+        }));
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return "Not specified";
         try { return new Date(dateString).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (error) { return "Invalid date"; }
@@ -263,13 +310,11 @@ export default function MyRide() {
     const getStatusBadge = (status, isAvailable) => {
         if (status === "Available" && isAvailable) return (<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200"><div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>Available</span>);
         if (status === "On A Trip") return (<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"><div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>On Trip</span>);
-        return (<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200"><div className="w-2 h-2 bg-red-400 rounded-full mr-2"></div>Unavailable</span>);
+        return (<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200"><div className="w-2 h-2 bg-red-400 rounded-full mr-2"></div>Not Running</span>);
     };
 
     const getSharingTypeBadge = (sharingType) => sharingType === "Shared" ? (<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200"><svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" /></svg>Shared</span>) : (<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200"><svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" /></svg>Private</span>);
 
-    if (loading) return (<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div><p className="text-gray-600 font-medium">Loading your rides...</p></div></div>);
-    
     const openSeatUpdateForm = (carId) => { const carToEdit = data.find(car => car._id === carId); if (carToEdit) { setSelectedCar(carToEdit); setEditingCarId(carId); setIsUpdateFormOpen(true); } };
     const handleSeatClick = (seat) => {
         if (seat.isBooked && seat.bookedBy) {
@@ -330,24 +375,38 @@ export default function MyRide() {
                 {/* Stats Grid - Already responsive */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
                     {/* Stat Cards... */}
-                    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200"><div className="flex items-center"><div className="p-3 bg-green-500 rounded-lg"><svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg></div><div className="ml-4"><p className="text-sm font-medium text-gray-600">Total Revenue</p><p className="text-xl sm:text-2xl font-bold text-gray-900">₹{revenueData.totalRevenue.toLocaleString()}</p></div></div></div>
-                    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200"><div className="flex items-center"><div className="p-3 bg-blue-500 rounded-lg"><svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div className="ml-4"><p className="text-sm font-medium text-gray-600">Active Rides</p><p className="text-xl sm:text-2xl font-bold text-gray-900">{data.length}</p></div></div></div>
-                    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200"><div className="flex items-center"><div className="p-3 bg-purple-500 rounded-lg"><svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div className="ml-4"><p className="text-sm font-medium text-gray-600">Booked Seats</p><p className="text-xl sm:text-2xl font-bold text-gray-900">{revenueData.totalBookedSeats}</p></div></div></div>
-                    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200"><div className="flex items-center"><div className="p-3 bg-orange-500 rounded-lg"><svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div className="ml-4"><p className="text-sm font-medium text-gray-600">Avg. Revenue</p><p className="text-xl sm:text-2xl font-bold text-gray-900">₹{data.length > 0 ? Math.round(revenueData.totalRevenue / data.length).toLocaleString() : 0}</p></div></div></div>
+                    <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6 border border-gray-200"><div className="flex items-center"><div className="p-2 sm:p-3 bg-green-500 rounded-lg"><svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg></div><div className="ml-3 sm:ml-4"><p className="text-xs sm:text-sm font-medium text-gray-600">Total Revenue</p><p className="text-lg sm:text-2xl font-bold text-gray-900">₹{revenueData.totalRevenue.toLocaleString()}</p></div></div></div>
+                    <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6 border border-gray-200"><div className="flex items-center"><div className="p-2 sm:p-3 bg-blue-500 rounded-lg"><svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div className="ml-3 sm:ml-4"><p className="text-xs sm:text-sm font-medium text-gray-600">Active Rides</p><p className="text-lg sm:text-2xl font-bold text-gray-900">{activeRides.length}</p></div></div></div>
+                    <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6 border border-gray-200"><div className="flex items-center"><div className="p-2 sm:p-3 bg-purple-500 rounded-lg"><svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></div><div className="ml-3 sm:ml-4"><p className="text-xs sm:text-sm font-medium text-gray-600">Booked Seats</p><p className="text-lg sm:text-2xl font-bold text-gray-900">{revenueData.totalBookedSeats}</p></div></div></div>
+                    <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6 border border-gray-200"><div className="flex items-center"><div className="p-2 sm:p-3 bg-orange-500 rounded-lg"><svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div className="ml-3 sm:ml-4"><p className="text-xs sm:text-sm font-medium text-gray-600">Avg. Revenue</p><p className="text-lg sm:text-2xl font-bold text-gray-900">₹{data.length > 0 ? Math.round(revenueData.totalRevenue / data.length).toLocaleString() : 0}</p></div></div></div>
                 </div>
 
                 {selectedTab === 'analytics' && <ChartDashboard revenueData={revenueData} />}
 
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
                     <h2 className="text-2xl font-bold text-gray-900">Your Vehicles</h2>
-                    <div className="mt-4 sm:mt-0 flex items-center space-x-4"><div className="flex items-center"><span className="w-3 h-3 bg-green-400 rounded-full mr-2"></span><span className="text-sm text-gray-600">Available</span></div><div className="flex items-center"><span className="w-3 h-3 bg-blue-400 rounded-full mr-2"></span><span className="text-sm text-gray-600">On Trip</span></div></div>
+                    <div className="flex items-center rounded-lg bg-gray-100 p-1">
+                        <button onClick={() => setRideViewFilter('active')} className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${rideViewFilter === 'active' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+                            Active
+                        </button>
+                        <button onClick={() => setRideViewFilter('inactive')} className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${rideViewFilter === 'inactive' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+                            Unavailable
+                        </button>
+                    </div>
                 </div>
 
-                {data.length === 0 ? (
-                    <div className="text-center py-16"><div className="mx-auto h-24 w-24 bg-gray-100 rounded-full flex items-center justify-center mb-4"><svg className="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg></div><h3 className="text-lg font-medium text-gray-900 mb-2">No rides found</h3><p className="text-gray-500 mb-6">Get started by adding your first ride.</p><button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">Add New Ride</button></div>
+                {loading ? (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
+                        <RideCardSkeleton />
+                        <RideCardSkeleton />
+                    </div>
+                ) : data.filter(ride => rideViewFilter === 'active' ? ride.isAvailable : !ride.isAvailable).length === 0 ? (
+                    <div className="text-center py-16"><div className="mx-auto h-24 w-24 bg-gray-100 rounded-full flex items-center justify-center mb-4"><svg className="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg></div><h3 className="text-lg font-medium text-gray-900 mb-2">No {rideViewFilter === 'active' ? 'Active' : 'Unavailable'} Rides</h3><p className="text-gray-500 mb-6">{rideViewFilter === 'active' ? 'All your vehicles are currently marked as unavailable.' : 'You have no unavailable vehicles.'}</p></div>
                 ) : (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
-                        {data.map((ride) => (
+                        {data
+                            .filter(ride => rideViewFilter === 'active' ? ride.isAvailable : !ride.isAvailable)
+                            .map((ride) => (
                             <div key={ride._id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-2xl transition-all duration-300">
                                 {/* Vehicle Header Image */}
                                 <div className="h-48 sm:h-56 relative overflow-hidden">
@@ -362,15 +421,21 @@ export default function MyRide() {
                                     </div>
                                 </div>
 
-                                <div className="p-4 sm:p-6 lg:p-8">
-                                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div className="p-4 sm:p-6">
+                                    <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                                         <div>
-                                            <h6 className="text-xl font-bold text-gray-900 mb-1">{ride.make || 'Unknown'} {ride.model || 'Vehicle'}</h6>
-                                            <div className="flex items-center text-gray-600"><svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg><span className="font-medium text-base">{ride.vehicleNumber || 'N/A'}</span></div>
+                                            <h6 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">{ride.make || 'Unknown'} {ride.model || 'Vehicle'}</h6>
+                                            <div className="flex items-center text-gray-600"><svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg><span className="font-medium text-sm sm:text-base">{ride.vehicleNumber || 'N/A'}</span></div>
                                         </div>
-                                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                            <select value={ride.isAvailable} onChange={(e) => updateRunningStatus(ride._id, ride.runningStatus, e.target.value === "true")} className={`w-full sm:w-auto px-4 py-2 text-sm font-medium rounded-lg shadow-sm border focus:outline-none focus:ring-2 transition-colors ${ride.isAvailable ? "bg-green-100 text-green-700 border-green-300 focus:ring-green-400" : "bg-red-100 text-red-700 border-red-300 focus:ring-red-400"}`}><option value={true}>✅ Available</option><option value={false}>❌ Unavailable</option></select>
-                                            <select value={ride.runningStatus || "Available"} onChange={(e) => updateRunningStatus(ride._id, e.target.value, ride.isAvailable)} className={`w-full sm:w-auto px-4 py-2 text-sm font-medium rounded-lg shadow-sm border focus:outline-none focus:ring-2 transition-colors ${ride.runningStatus === "On A Trip" ? "bg-blue-100 text-blue-700 border-blue-300 focus:ring-blue-400" : "bg-green-100 text-green-700 border-green-300 focus:ring-green-400"}`}><option value="Available">🟢 Available</option><option value="On A Trip">🟡 On Trip</option><option value="Unavailable">🔴 Unavailable</option></select>
+                                        <div className="flex flex-row sm:flex-col lg:flex-row gap-4">
+                                            <div>
+                                                <label htmlFor={`availability-${ride._id}`} className="block text-xs font-medium text-gray-500 mb-1">Availability</label>
+                                                <select id={`availability-${ride._id}`} value={ride.isAvailable} onChange={(e) => updateRunningStatus(ride._id, ride.runningStatus, e.target.value === "true")} className={`w-full px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg shadow-sm border focus:outline-none focus:ring-2 transition-colors ${ride.isAvailable ? "bg-green-100 text-green-700 border-green-300 focus:ring-green-400" : "bg-red-100 text-red-700 border-red-300 focus:ring-red-400"}`}><option value={true}>✅ Avail</option><option value={false}>❌ Unavail</option></select>
+                                            </div>
+                                            <div>
+                                                <label htmlFor={`running-status-${ride._id}`} className="block text-xs font-medium text-gray-500 mb-1">Running Status</label>
+                                                <select id={`running-status-${ride._id}`} value={ride.runningStatus || "Available"} onChange={(e) => updateRunningStatus(ride._id, e.target.value, ride.isAvailable)} className={`w-full px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg shadow-sm border focus:outline-none focus:ring-2 transition-colors ${ride.runningStatus === "On A Trip" ? "bg-blue-100 text-blue-700 border-blue-300 focus:ring-blue-400" : "bg-green-100 text-green-700 border-green-300 focus:ring-green-400"}`}><option value="Available">🟢 Avail</option><option value="On A Trip">🟡 On Trip</option><option value="Unavailable">🔴 Not Running</option></select>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -380,7 +445,7 @@ export default function MyRide() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm"><div className="text-center sm:text-left"><span className="text-gray-500 block">Departure</span><span className="font-medium text-gray-900">{formatDate(ride.pickupD)}</span></div><div className="text-center sm:text-right"><span className="text-gray-500 block">Arrival</span><span className="font-medium text-gray-900">{formatDate(ride.dropD)}</span></div></div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mb-6 text-sm">
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:gap-x-6 sm:gap-y-4 mb-6 text-xs sm:text-sm">
                                         {/* Specs details... */}
                                         <div className="flex justify-between items-center"><span className="text-gray-600">Year</span><span className="font-semibold text-gray-900">{ride.year || 'N/A'}</span></div>
                                         <div className="flex justify-between items-center"><span className="text-gray-600">Fuel Type</span><span className="font-semibold text-gray-900">{ride.fuelType || 'N/A'}</span></div>
@@ -392,21 +457,31 @@ export default function MyRide() {
 
                                     {ride.sharingType === "Shared" && ride.seatConfig && Array.isArray(ride.seatConfig) && ride.seatConfig.length > 0 && (
                                         <div className="mb-6">
-                                            <div className="flex justify-between items-center mb-3"><h4 className="font-semibold text-gray-900">Seat Configuration</h4><div className="text-sm text-gray-600">{ride.seatConfig.filter(seat => seat.isBooked).length}/{ride.seatConfig.length} Booked</div></div>
-                                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
-                                                {ride.seatConfig.map((seat) => (
-                                                    <div
-                                                        key={seat._id}
-                                                        className={`relative p-2 rounded-lg border-2 text-center transition-all cursor-pointer ${seat.isBooked ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100'}`}
-                                                        onClick={() => handleSeatClick(seat)}
-                                                    >
-                                                        <div className="font-bold text-base sm:text-lg">{seat.seatNumber}</div>
-                                                        <div className="text-xs font-medium">{seat.seatType}</div>
-                                                        <div className="text-xs font-bold">₹{seat.seatPrice}</div>
-                                                    </div>
-                                                ))}
+                                            <div className="flex justify-between items-center mb-3">
+                                                <button onClick={() => toggleSeats(ride._id)} className="flex items-center font-semibold text-gray-900 focus:outline-none">
+                                                    Seat Configuration
+                                                    {expandedSeats[ride._id] ? <ExpandLess className="ml-1" /> : <ExpandMore className="ml-1" />}
+                                                </button>
+                                                <div className="text-sm text-gray-600">{ride.seatConfig.filter(seat => seat.isBooked).length}/{ride.seatConfig.length} Booked</div>
                                             </div>
-                                            <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-100"><div className="flex justify-between items-center mb-1"><span className="font-medium text-blue-900">Ride Revenue</span><span className="text-lg sm:text-xl font-bold text-blue-600">₹{ride.seatConfig.reduce((total, seat) => seat.isBooked ? total + (seat.seatPrice || 0) : total, 0)}</span></div><div className="text-xs sm:text-sm text-blue-700">Occupancy: {Math.round((ride.seatConfig.filter(s => s.isBooked).length / ride.seatConfig.length) * 100)}%</div></div>
+                                            {expandedSeats[ride._id] && (
+                                                <>
+                                                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-2 mb-4">
+                                                        {ride.seatConfig.map((seat) => (
+                                                            <div
+                                                                key={seat._id}
+                                                                className={`relative p-2 rounded-lg border-2 text-center transition-all cursor-pointer ${seat.isBooked ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100'}`}
+                                                                onClick={() => handleSeatClick(seat)}
+                                                            >
+                                                                <div className="font-bold text-base sm:text-lg">{seat.seatNumber}</div>
+                                                                <div className="text-xs font-medium">{seat.seatType}</div>
+                                                                <div className="text-xs font-bold">₹{seat.seatPrice}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-100"><div className="flex justify-between items-center mb-1"><span className="font-medium text-blue-900">Ride Revenue</span><span className="text-lg sm:text-xl font-bold text-blue-600">₹{ride.seatConfig.reduce((total, seat) => seat.isBooked ? total + (seat.seatPrice || 0) : total, 0)}</span></div><div className="text-xs sm:text-sm text-blue-700">Occupancy: {Math.round((ride.seatConfig.filter(s => s.isBooked).length / ride.seatConfig.length) * 100)}%</div></div>
+                                                </>
+                                            )}
                                         </div>
                                     )}
             {/* Seat Details Popup */}
@@ -432,9 +507,9 @@ export default function MyRide() {
                 </div>
             )}
 
-                                    <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-4 border-t border-gray-100">
-                                        <button onClick={() => openCarUpdateForm(ride)} className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center"><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>Edit Details</button>
-                                        <button onClick={() => openSeatUpdateForm(ride._id)} className="flex-1 border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium flex items-center justify-center"><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>Edit Seats</button>
+                                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-6 pt-4 border-t border-gray-100">
+                                        <button onClick={() => openCarUpdateForm(ride)} className="flex-1 bg-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center text-sm"><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>Edit Details</button>
+                                        <button onClick={() => openSeatUpdateForm(ride._id)} className="flex-1 border-2 border-gray-300 text-gray-700 px-4 py-2 sm:px-6 sm:py-3 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium flex items-center justify-center text-sm"><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>Edit Seats</button>
                                     </div>
                                 </div>
                             </div>
