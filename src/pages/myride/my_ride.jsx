@@ -517,7 +517,7 @@ export default function MyRide() {
                     </div>
                 )}
 
-                {isUpdateFormOpen && selectedCar && <SeatConfigUpdate open={isUpdateFormOpen} onClose={closeUpdateForm} car={selectedCar} onUpdateSuccess={handleSeatUpdateSuccess} />}
+                {isUpdateFormOpen && selectedCar && <SeatConfigUpdate open={isUpdateFormOpen} onClose={closeUpdateForm} car={selectedCar} />}
                 {isCarUpdateFormOpen && selectedCarForDetails && <CarUpdate open={isCarUpdateFormOpen} onClose={closeCarUpdateForm} car={selectedCarForDetails} onUpdateSuccess={handleUpdateSuccess} />}
             </div>
         </div>

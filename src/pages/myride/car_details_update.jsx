@@ -168,9 +168,7 @@ export default function CarUpdate({ car, onClose, open, onUpdateSuccess = () => 
       }
       const result = await response.json();
       setSuccess("Car details updated successfully!");
-      if (onUpdateSuccess) {
-        onUpdateSuccess(result);
-      }
+      onUpdateSuccess(result);
       setTimeout(() => onClose(), 1500);
     } catch (err) {
       if (err.name !== "AbortError") {
