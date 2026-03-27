@@ -1,39 +1,54 @@
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import './App.css'
-import { createBrowserRouter, RouterProvider, useNavigation } from 'react-router-dom';
-import Footer from './components/footer';
-import Header from './components/header';
-import Login from './components/login';
-import MyRide from './pages/myride/my_ride';
-import MyRideBooking from './pages/bookings/my_bookings.jsx';
-import AddCar from './pages/myride/add_car.jsx';
-import Loader from './components/loader.jsx';
+import BottomNav from './components/BottomNav'
+import Header from './components/Header'
+import HomePage from './pages/home'
+import LoginPage from './pages/login'
+import MyBookingsPage from './pages/mybookings'
+import MyCarsPage from './pages/mycars'
+import ProfilePage from './pages/profile'
 
-function MainLayout({ children }) {
-  const navigation = useNavigation();
+function AppLayout() {
   return (
-    <>
-      {navigation.state === 'loading' && <Loader />}
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="pt-16"> {/* Add padding to avoid content being hidden by fixed header */}
-        {children}
+      <main>
+        <Outlet />
       </main>
-      <Footer />
-    </>
-  );
+      <BottomNav />
+    </div>
+  )
 }
 
-const router = createBrowserRouter([
-  { path: "/login", element: <Login /> },
-  { path: "/", element: <MainLayout><MyRide /></MainLayout> },
-  { path: "/home", element: <MainLayout><MyRide /></MainLayout> },
-  { path: "/add-car", element: <MainLayout><AddCar /></MainLayout> },
-  { path: "/bookings", element: <MainLayout><MyRideBooking /></MainLayout> },
-]);
+function ProtectedLayout() {
+  const user = useSelector((state) => state.auth.user)
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <AppLayout />
+}
 
 function App() {
+  const user = useSelector((state) => state.auth.user)
+
   return (
-    <RouterProvider router={router} />
-  );
+    <Routes>
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/" replace /> : <LoginPage />}
+      />
+      <Route element={<ProtectedLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/my-cars" element={<MyCarsPage />} />
+        <Route path="/my-bookings" element={<MyBookingsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Route>
+      <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
+    </Routes>
+  )
 }
 
-export default App;
+export default App
