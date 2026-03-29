@@ -30,24 +30,7 @@ export const getCarById = createAsyncThunk(
   },
 )
 
-// 3. Get My Cars (auth)
-export const getMyCars = createAsyncThunk(
-  'cars/getMyCars',
-  async (_, { getState, rejectWithValue }) => {
-    try {
-      const token =
-        getState().auth?.user?.token || localStorage.getItem('loggedUserToken')
-      const res = await axios.get(`${BaseUrl}/travel/get-my-cars`, {
-        headers: { Authorization: token },
-      })
-      return res.data
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || err.message)
-    }
-  },
-)
-
-// 4. Get Cars By Owner Id
+// 3. Get Cars By Owner Id
 export const getCarsByOwner = createAsyncThunk(
   'cars/getCarsByOwner',
   async (ownerId, { rejectWithValue }) => {
@@ -169,10 +152,6 @@ const carSlice = createSlice({
       .addCase(getCarById.fulfilled, (state, action) => {
         state.loading = false
         state.car = action.payload
-      })
-      .addCase(getMyCars.fulfilled, (state, action) => {
-        state.loading = false
-        state.cars = action.payload || []
       })
       .addCase(getCarsByOwner.fulfilled, (state, action) => {
         state.loading = false

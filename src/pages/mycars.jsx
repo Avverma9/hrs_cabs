@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import axios from 'axios'
 import {
-  addCar, getAllCars, getMyCars, getCarsByOwner,
+  addCar, getAllCars, getCarsByOwner,
   updateCar, deleteCar, getSeatData,
   clearSeatData, clearCarError, clearCarSuccess,
 } from '../redux/slices/carSlice'
 import {
   createTravelBooking, clearBookingError, clearBookingSuccess,
 } from '../redux/slices/bookingSlice'
+import { BaseUrl } from '../utils/baseUrl'
 
 const EMPTY_CAR = {
   make: '', model: '', vehicleType: 'Car', sharingType: 'Private',
@@ -93,8 +95,14 @@ export default function MyCarsPage() {
   const [editSeatConfig, setEditSeatConfig] = useState([])
   const [bookForm, setBookForm] = useState({ passengerName: '', customerMobile: '', customerEmail: '', paymentMethod: 'Online', paymentId: '' })
   const [selectedSeats, setSelectedSeats] = useState([])
-  const [ownerId, setOwnerId] = useState('')
   const [toast, setToast] = useState(null)
+
+  // --- Owner user picker state ---
+  const [allUsers, setAllUsers] = useState([])
+  const [userSearch, setUserSearch] = useState('')
+  const [showUserPicker, setShowUserPicker] = useState(false)
+  const [userPickerLoading, setUserPickerLoading] = useState(false)
+  const userPickerRef = useRef(null)
 
   useEffect(() => { dispatch(getAllCars()) }, [dispatch])
   useEffect(() => {
@@ -103,6 +111,50 @@ export default function MyCarsPage() {
       return () => clearTimeout(t)
     }
   }, [toast])
+
+  // Close user picker on outside click
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (userPickerRef.current && !userPickerRef.current.contains(e.target)) {
+        setShowUserPicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  async function fetchAllUsers() {
+    setUserPickerLoading(true)
+    try {
+      const res = await axios.get(`${BaseUrl}/login/dashboard/get/all/user`)
+      const list = res.data?.data || res.data || []
+      setAllUsers(Array.isArray(list) ? list : [])
+    } catch {
+      setAllUsers([])
+    } finally {
+      setUserPickerLoading(false)
+    }
+  }
+
+  async function selectOwner(userData) {
+    const listName = userData.userName || userData.name || userData.fullName || ''
+    ua('ownerId', userData._id || '')
+    ua('ownerName', listName)
+    ua('ownerEmail', userData.email || '')
+    ua('ownerMobile', String(userData.mobile || ''))
+    setShowUserPicker(false)
+    setUserSearch('')
+    // Fetch full profile — get userName + address
+    try {
+      const res = await axios.get(`${BaseUrl}/login/dashboard/get/all/user/${userData._id}`)
+      const full = res.data?.data || {}
+      const fullName = full.userName || full.name || full.fullName || listName
+      if (fullName) ua('ownerName', fullName)
+      if (full.address) ua('ownerAddress', full.address)
+    } catch {
+      // use whatever we already filled
+    }
+  }
 
   function openModal(type, car) {
     dispatch(clearCarError()); dispatch(clearBookingError()); dispatch(clearBookingSuccess()); dispatch(clearCarSuccess())
@@ -260,18 +312,11 @@ export default function MyCarsPage() {
               className="px-4 py-2 text-xs font-black bg-white border border-gray-200 rounded-full hover:bg-zinc-900 hover:text-white hover:border-zinc-900 active:scale-95 transition-all uppercase tracking-wide">
               All Cars
             </button>
-            <button type="button" onClick={() => dispatch(getMyCars())}
+            <button type="button" onClick={() => { const id = user?.id || localStorage.getItem('loggedUserId'); if (id) dispatch(getCarsByOwner(id)) }}
               className="px-4 py-2 text-xs font-black bg-white border border-gray-200 rounded-full hover:bg-zinc-900 hover:text-white hover:border-zinc-900 active:scale-95 transition-all uppercase tracking-wide">
               My Cars
             </button>
-            <div className="flex gap-1.5">
-              <input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} placeholder="Owner ID"
-                className="bg-white border border-gray-200 rounded-full px-4 py-2 text-xs font-semibold outline-none w-28 focus:border-gray-400 transition-all" />
-              <button type="button" onClick={() => ownerId && dispatch(getCarsByOwner(ownerId))}
-                className="px-4 py-2 text-xs font-black bg-white border border-gray-200 rounded-full hover:bg-zinc-900 hover:text-white active:scale-95 transition-all uppercase tracking-wide whitespace-nowrap">
-                By Owner
-              </button>
-            </div>
+
           </div>
           <button type="button" onClick={() => openModal('add')}
             className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-wide hover:bg-zinc-700 active:scale-95 transition-all shadow-lg shadow-zinc-900/20">
@@ -512,13 +557,109 @@ export default function MyCarsPage() {
                 <span className="w-5 h-5 rounded-full bg-zinc-900 text-white text-[9px] flex items-center justify-center font-black">{addForm.sharingType === 'Shared' ? '6' : '5'}</span>
                 Owner Details <span className="normal-case font-semibold text-gray-300">(required)</span>
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <Inp label="Owner ID (existing)" placeholder="Paste existing owner ID" className="col-span-2" value={addForm.ownerId} onChange={(e) => ua('ownerId', e.target.value)} />
-                {!addForm.ownerId && (
-                  <p className="col-span-2 text-[10px] text-amber-600 font-semibold bg-amber-50 rounded-xl px-3 py-2">
-                    No Owner ID? Fill name + email/mobile below to create a new owner.
-                  </p>
+
+              {/* ── Owner ID + Browse Users ── */}
+              <div className="col-span-2 mb-3" ref={userPickerRef}>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Owner ID (existing)</label>
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 transition-all placeholder:text-gray-400"
+                    placeholder="Paste existing owner ID or pick from users below"
+                    value={addForm.ownerId}
+                    onChange={(e) => ua('ownerId', e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!showUserPicker) { fetchAllUsers(); setShowUserPicker(true) }
+                      else setShowUserPicker(false)
+                    }}
+                    className="shrink-0 px-4 py-3 text-xs font-black bg-zinc-900 text-white rounded-2xl hover:bg-zinc-700 active:scale-95 transition-all whitespace-nowrap">
+                    {showUserPicker ? '✕ Close' : '👤 Browse Users'}
+                  </button>
+                  {addForm.ownerId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        ua('ownerId', ''); ua('ownerName', ''); ua('ownerEmail', '')
+                        ua('ownerMobile', ''); ua('ownerAddress', '')
+                      }}
+                      className="shrink-0 px-3 py-3 text-xs font-black bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white active:scale-95 transition-all">
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {/* ── Selected owner badge ── */}
+                {addForm.ownerId && addForm.ownerName && (
+                  <div className="mt-2 flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+                    <span className="text-emerald-600 text-base">✓</span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-emerald-800 truncate">{addForm.ownerName}</p>
+                      <p className="text-[10px] text-emerald-600 truncate">{addForm.ownerEmail} · {addForm.ownerMobile}</p>
+                    </div>
+                  </div>
                 )}
+
+                {/* ── User Picker Dropdown ── */}
+                {showUserPicker && (
+                  <div className="mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden z-20 relative">
+                    <div className="p-3 border-b border-gray-100">
+                      <input
+                        autoFocus
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        placeholder="Search by name, email or mobile..."
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:border-zinc-400 transition-all placeholder:text-gray-400"
+                      />
+                    </div>
+                    <div className="max-h-56 overflow-y-auto divide-y divide-gray-50">
+                      {userPickerLoading && (
+                        <p className="text-center text-xs font-semibold text-gray-400 py-6 animate-pulse">Loading users...</p>
+                      )}
+                      {!userPickerLoading && allUsers.length === 0 && (
+                        <p className="text-center text-xs font-semibold text-gray-400 py-6">No users found.</p>
+                      )}
+                      {!userPickerLoading && allUsers
+                        .filter((u) => {
+                          const q = userSearch.toLowerCase()
+                          return !q ||
+                            (u.userName || '').toLowerCase().includes(q) ||
+                            (u.email || '').toLowerCase().includes(q) ||
+                            String(u.mobile || '').includes(q)
+                        })
+                        .map((u) => (
+                          <button
+                            key={u._id}
+                            type="button"
+                            onClick={() => selectOwner(u)}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 active:bg-zinc-100 transition-colors text-left">
+                            <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center shrink-0 overflow-hidden">
+                              {u.images?.[0]
+                                ? <img src={u.images[0]} alt="" className="w-full h-full object-cover" />
+                                : <span className="text-sm font-black text-zinc-600">{(u.userName || u.name || u.fullName || '?')[0].toUpperCase()}</span>
+                              }
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-black text-gray-900 truncate">{u.userName || u.name || u.fullName || '—'}</p>
+                              <p className="text-[10px] font-semibold text-gray-400 truncate">{u.email} · {u.mobile}</p>
+                            </div>
+                            <span className="text-[9px] font-black text-gray-300 shrink-0">SELECT →</span>
+                          </button>
+                        ))
+                      }
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {!addForm.ownerId && (
+                <p className="col-span-2 text-[10px] text-amber-600 font-semibold bg-amber-50 rounded-xl px-3 py-2 mb-3">
+                  No Owner ID? Fill name + email/mobile below to create a new owner.
+                </p>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
                 <Inp label="Owner Name" placeholder="Ravi Yadav" value={addForm.ownerName} onChange={(e) => ua('ownerName', e.target.value)} />
                 <Inp label="Owner Mobile *" placeholder="9876543210" value={addForm.ownerMobile} onChange={(e) => ua('ownerMobile', e.target.value)} />
                 <Inp label="Owner Email *" type="email" className="col-span-2" placeholder="ravi@example.com" value={addForm.ownerEmail} onChange={(e) => ua('ownerEmail', e.target.value)} />

@@ -63,17 +63,14 @@ export const loginUser = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await axios.post(`${BaseUrl}/login/dashboard/user`, credentials)
-      return normalizeAuthPayload(response.data, credentials.email)
+      const normalized = normalizeAuthPayload(response.data, credentials.email)
+      if (normalized.role !== 'Ride') {
+        return rejectWithValue('Access denied. Only users with the "Ride" role can log in to this dashboard.')
+      }
+      return normalized
     } catch (error) {
       if (error.code === 'ERR_NETWORK') {
-        return normalizeAuthPayload(
-          {
-            id: 'demo-user',
-            role: 'guest',
-            token: 'demo-token',
-          },
-          credentials.email,
-        )
+        return rejectWithValue('Network error. Please check your connection and try again.')
       }
 
       return rejectWithValue(error.response?.data?.message || error.message || 'Login failed')

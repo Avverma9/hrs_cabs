@@ -112,9 +112,22 @@ export default function Home() {
           <select name="vehicleType" value={filter.vehicleType} onChange={handleFilter} className="w-full bg-transparent px-4 py-3 md:py-2 outline-none font-medium text-gray-600 border-b md:border-b-0 md:border-r border-gray-100 cursor-pointer">
             <option value="">Any Vehicle</option><option value="Car">Cars</option><option value="Bus">Buses</option>
           </select>
-          <button onClick={doFilter} className="w-full md:w-auto bg-black text-white px-8 py-3 md:py-2 rounded-2xl md:rounded-full font-bold hover:bg-gray-800 active:scale-95 transition-all whitespace-nowrap">
-            Search
-          </button>
+          <div className="flex gap-2">
+            <button onClick={doFilter} className="flex-1 md:flex-none bg-black text-white px-8 py-3 md:py-2 rounded-2xl md:rounded-full font-bold hover:bg-gray-800 active:scale-95 transition-all whitespace-nowrap">
+              Search
+            </button>
+            {(filter.pickupP || filter.dropP || filter.vehicleType) && (
+              <button
+                onClick={() => {
+                  setFilter({ pickupP: '', dropP: '', vehicleType: '', fuelType: '', seater: '' })
+                  dispatch(getAllCars())
+                }}
+                className="px-4 py-3 md:py-2 rounded-2xl md:rounded-full font-bold bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500 active:scale-95 transition-all whitespace-nowrap text-sm"
+              >
+                ✕ Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
